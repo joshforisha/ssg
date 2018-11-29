@@ -2,8 +2,8 @@ const Handlebars = require('handlebars')
 const fs = require('fs')
 const marked = require('marked')
 
-const baseUrl = process.argv.length > 3 ? process.argv[3] : '/'
-const buildDir = process.argv.length > 2 ? process.argv[2] : 'build'
+const baseUrl = process.argv.length > 2 ? process.argv[2] : '/'
+const buildDir = process.argv.length > 1 ? process.argv[1] : 'build'
 
 function getPages (dir) {
   return new Promise((resolve, reject) => {
