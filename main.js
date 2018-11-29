@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 const Handlebars = require('handlebars')
 const fs = require('fs')
 const marked = require('marked')
