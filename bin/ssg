@@ -1,11 +1,18 @@
+#!/usr/bin/env node
+
 const Handlebars = require('handlebars')
 const fs = require('fs')
 const marked = require('marked')
 
 const baseUrl = process.argv.length > 2 ? process.argv[2] : '/'
-const buildDir = process.argv.length > 1 ? process.argv[1] : 'build'
+const buildDir =
+  process.argv.length > 1
+    ? process.argv[1].startsWith('/')
+      ? process.argv[1]
+      : `${process.cwd()}/${process.argv[1]}`
+    : `${process.cwd()}/build`
 
-function getPages (dir) {
+function getPages(dir) {
   return new Promise((resolve, reject) => {
     fs.readdir(
       dir,
@@ -43,7 +50,7 @@ function getPages (dir) {
   })
 }
 
-function readFile (filePath) {
+function readFile(filePath) {
   return new Promise((resolve, reject) => {
     fs.readFile(filePath, 'utf8', (ferr, data) => {
       if (ferr) return reject(ferr)
@@ -65,14 +72,9 @@ Promise.all([getPages('src'), templatePromise])
       fs.mkdir(`${buildDir}${dirname}`, { recursive: true }, error => {
         if (error) return console.error(error)
 
-        fs.writeFile(
-          `${buildDir}${dirname}/index.html`,
-          data,
-          {},
-          error => {
-            if (error) console.error(error)
-          }
-        )
+        fs.writeFile(`${buildDir}${dirname}/index.html`, data, {}, error => {
+          if (error) console.error(error)
+        })
       })
     })
   })
