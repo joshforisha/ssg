@@ -1,81 +1,107 @@
 #!/usr/bin/env node
 
+if (process.argv.length !== 5) {
+  // eslint-disable-next-line no-console
+  console.log('usage: ssg <base-url> <source-dir> <destination-dir>')
+  process.exit(0)
+}
+
 const Handlebars = require('handlebars')
 const fs = require('fs')
 const marked = require('marked')
+const path = require('path')
 
-const baseUrl = process.argv.length > 3 ? process.argv[3] : '/'
-const buildDir =
-  process.argv.length > 2
-    ? process.argv[2].startsWith('/')
-      ? process.argv[2]
-      : `${process.env['INIT_CWD']}/${process.argv[2]}`
-    : `${process.env['INIT_CWD']}/build`
+const baseUrl = process.argv[2]
+const srcDir = process.argv[3]
+const destDir = process.argv[4]
 
-function getPages(dir) {
+function copyFile(srcFile, dir) {
   return new Promise((resolve, reject) => {
-    fs.readdir(
-      dir,
-      { encoding: 'utf8', withFileTypes: true },
-      (error, files) => {
+    const filename = path.basename(srcFile)
+    fs.mkdir(dir, { recursive: true }, error => {
+      if (error) return reject(error)
+      fs.copyFile(srcFile, `${dir}/${filename}`, error => {
         if (error) return reject(error)
+        resolve()
+      })
+    })
+  })
+}
 
-        const pages = files
-          .filter(f => f.isFile() && f.name.endsWith('.md'))
-          .map(f => {
-            const outDir = dir.replace(/^src\/?/, '')
-            const name = f.name.substring(0, f.name.length - 3)
+function processFiles(dir, layoutPromise) {
+  const outDir = destDir + dir.replace(srcDir, '')
 
-            return readFile(`${dir}/${f.name}`).then(md => {
-              const contentMd = md
-                .replace(/\/\//g, `${baseUrl}/`)
-                .replace(/__/g, '&emsp;&emsp;')
+  return new Promise((resolve, reject) => {
+    fs.readdir(dir, { withFileTypes: true }, (error, files) => {
+      if (error) return reject(error)
 
-              return {
-                content: marked(contentMd),
-                path: name !== 'index' ? `${outDir}/${name}` : outDir
-              }
-            })
+      const subDirs = []
+      const pages = []
+      const otherFiles = []
+
+      files.forEach(file => {
+        const fileName = `${dir}/${file.name}`
+        if (file.isDirectory()) {
+          subDirs.push(fileName)
+        } else if (file.name.endsWith('.md')) {
+          pages.push(fileName)
+        } else if (file.name === 'index.html') {
+          layoutPromise = readFile(fileName).then(t =>
+            Handlebars.compile(t, { noEscape: true })
+          )
+        } else {
+          otherFiles.push(fileName)
+        }
+      })
+
+      if (!(layoutPromise instanceof Promise)) {
+        return reject(new Error(`No layout defined for ${dir}`))
+      }
+
+      const pagePromises = pages.map(p =>
+        Promise.all([layoutPromise, readFile(p)]).then(([layout, content]) => {
+          const basename = path.basename(p, path.extname(p))
+          const name = basename === 'index' ? '' : basename
+
+          const output = layout({
+            baseUrl,
+            content: marked(content.replace(/\/\/\//g, `${baseUrl}/`))
           })
 
-        const subPages = files
-          .filter(f => f.isDirectory())
-          .map(d => getPages(`${dir}/${d.name}`))
+          return writeFile(`${outDir}/${name}`, 'index.html', output)
+        })
+      )
 
-        Promise.all([Promise.all(pages), Promise.all(subPages)]).then(
-          ([ps, subs]) => resolve(ps.concat(subs).flat())
-        )
-      }
-    )
+      const copyPromises = otherFiles.map(f => copyFile(f, outDir))
+      const subPromises = subDirs.map(d => processFiles(d, layoutPromise))
+
+      return Promise.all([pagePromises, copyPromises, subPromises].flat())
+    })
   })
 }
 
 function readFile(filePath) {
   return new Promise((resolve, reject) => {
-    fs.readFile(filePath, 'utf8', (ferr, data) => {
-      if (ferr) return reject(ferr)
+    fs.readFile(filePath, { encoding: 'utf8' }, (error, data) => {
+      if (error) return reject(error)
       resolve(data)
     })
   })
 }
 
-const templatePromise = readFile('src/index.html').then(t =>
-  Handlebars.compile(t, { noEscape: true })
-)
-
-Promise.all([getPages('src'), templatePromise])
-  .then(([pages, template]) => {
-    pages.forEach(({ content, path }) => {
-      const data = template({ baseUrl, content })
-
-      const dirname = path === '' ? '' : `/${path}`
-      fs.mkdir(`${buildDir}${dirname}`, { recursive: true }, error => {
-        if (error) return console.error(error)
-
-        fs.writeFile(`${buildDir}${dirname}/index.html`, data, {}, error => {
-          if (error) console.error(error)
-        })
+function writeFile(dir, filename, data) {
+  return new Promise((resolve, reject) => {
+    fs.mkdir(dir, { recursive: true }, error => {
+      if (error) return reject(error)
+      fs.writeFile(`${dir}/${filename}`, data, { encoding: 'utf8' }, error => {
+        if (error) return reject(error)
+        resolve()
       })
     })
   })
-  .catch(e => console.error(e))
+}
+
+processFiles(srcDir).catch(error => {
+  console.error(error) // eslint-disable-line no-console
+  process.exit(1)
+})
