@@ -1,6 +1,8 @@
 # ssg
 A Node-based static site generator
 
+Install: `npm install -g @joshforisha/ssg`
+
 Usage: `ssg <base-url> <source-dir> <destination-dir>`
 
 * Any `index.html` will be used as a Handlebars template for all Markdown files in the same directory, as well as subdirectories.
