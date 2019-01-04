@@ -59,13 +59,16 @@ function processFiles(dir, layoutPromise) {
       }
 
       const pagePromises = pages.map(p =>
-        Promise.all([layoutPromise, readFile(p)]).then(([layout, content]) => {
+        Promise.all([layoutPromise, readFile(p)]).then(([layout, md]) => {
           const basename = path.basename(p, path.extname(p))
           const name = basename === 'index' ? '' : basename
+          const customMd = md
+            .replace(/\/\/\//g, `${baseUrl}/`)
+            .replace(/___/g, '&emsp;&emsp;')
 
           const output = layout({
             baseUrl,
-            content: marked(content.replace(/\/\/\//g, `${baseUrl}/`))
+            content: marked(customMd)
           })
 
           return writeFile(`${outDir}/${name}`, 'index.html', output)
