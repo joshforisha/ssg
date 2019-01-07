@@ -15,6 +15,13 @@ const baseUrl = process.argv[2]
 const srcDir = process.argv[3]
 const destDir = process.argv[4]
 
+marked.setOptions({
+  baseUrl,
+  breaks: true,
+  gfm: true,
+  smartypants: true
+})
+
 function copyFile(srcFile, dir) {
   return new Promise((resolve, reject) => {
     const filename = path.basename(srcFile)
