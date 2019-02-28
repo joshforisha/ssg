@@ -16,6 +16,7 @@ const srcDir = process.argv[3]
 const destDir = process.argv[4]
 
 marked.setOptions({
+  baseUrl,
   breaks: true,
   gfm: true,
   smartypants: true
@@ -34,7 +35,12 @@ function copyFile(srcFile, dir) {
   })
 }
 
-function processFiles(dir, layoutPromise) {
+function errorExit(error) {
+  console.error(error) // eslint-disable-line no-console
+  process.exit(1)
+}
+
+function processFiles(dir, aliases, layoutPromise) {
   const outDir = destDir + dir.replace(srcDir, '')
 
   return new Promise((resolve, reject) => {
@@ -55,7 +61,7 @@ function processFiles(dir, layoutPromise) {
           layoutPromise = readFile(fileName).then(t =>
             Handlebars.compile(t, { noEscape: true })
           )
-        } else {
+        } else if (file.name !== 'aliases') {
           otherFiles.push(fileName)
         }
       })
@@ -69,8 +75,18 @@ function processFiles(dir, layoutPromise) {
           const basename = path.basename(p, path.extname(p))
           const name = basename === 'index' ? '' : basename
           const customMd = md
-            .replace(/\/\/\//g, `${baseUrl}/`)
             .replace(/___/g, '&emsp;&emsp;')
+            .replace(/@([^@]*)@/g, (match, aliasKey) => {
+              const label = aliasKey.replace(/_/g, ' ')
+
+              if (aliasKey in aliases) {
+                return `[${label}](${aliases[aliasKey]})`
+              }
+
+              // eslint-disable-next-line no-console
+              console.warn(`${p}: No alias found for "${aliasKey}"`)
+              return `[${label}]()`
+            })
 
           const output = layout({
             baseUrl,
@@ -82,7 +98,9 @@ function processFiles(dir, layoutPromise) {
       )
 
       const copyPromises = otherFiles.map(f => copyFile(f, outDir))
-      const subPromises = subDirs.map(d => processFiles(d, layoutPromise))
+      const subPromises = subDirs.map(d =>
+        processFiles(d, aliases, layoutPromise)
+      )
 
       return Promise.all([pagePromises, copyPromises, subPromises].flat())
     })
@@ -110,7 +128,14 @@ function writeFile(dir, filename, data) {
   })
 }
 
-processFiles(srcDir).catch(error => {
-  console.error(error) // eslint-disable-line no-console
-  process.exit(1)
+fs.readFile(`${srcDir}/aliases`, { encoding: 'utf8' }, (error, data = '') => {
+  if (error && error.code !== 'ENOENT') return errorExit(error)
+
+  const aliases = data.split('\n').reduce((acc, line) => {
+    const [alias, url] = line.split(': ')
+    if (url) return Object.assign({ [alias]: url }, acc)
+    return acc
+  }, {})
+
+  processFiles(srcDir, aliases).catch(errorExit)
 })
