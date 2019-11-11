@@ -90,7 +90,9 @@ function processFiles(dir, aliases, layoutPromise) {
 
           const now = new Date();
           const buildDate = now.toDateString();
-          const buildTime = now.toLocaleTimeString("en-US");
+          const buildTime = now.toLocaleTimeString("en-US", {
+            timeStyle: "short"
+          });
 
           const output = layout({
             baseUrl,
