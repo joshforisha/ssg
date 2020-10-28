@@ -1,13 +1,13 @@
 {
   "name": "@joshforisha/ssg",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "A supremely simple static site generator",
   "repository": "github:joshforisha/ssg",
   "bin": {
-    "ssg": "./bin/ssg"
+    "ssg": "bin/ssg"
   },
   "license": "BSD-3-Clause",
-  "dependencies": {
+  "devDependencies": {
     "handlebars": "^4.7.6",
     "marked": "^0.7.0"
   }
