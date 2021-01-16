@@ -9,6 +9,6 @@
   "license": "BSD-3-Clause",
   "dependencies": {
     "handlebars": "^4.7.6",
-    "marked": "^0.7.0"
+    "marked": "^1.2.7"
   }
 }
