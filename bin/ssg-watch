@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+if (process.argv.length !== 5) {
+  console.log('usage: ssg-watch <source-dir> <base-url> <destination-dir>')
+  process.exit(0)
+}
+
+const chokidar = require('chokidar')
+const { generate } = require('../lib/utils.js')
+
+chokidar.watch(process.argv[2], { ignoreInitial: true })
+  .on('add', generate)
+  .on('change', generate)
+  .on('unlink', generate)
+
+generate()
