@@ -5,8 +5,6 @@ if (process.argv.length !== 5) {
   process.exit(0)
 }
 
-console.log(process.argv)
-
 const chokidar = require('chokidar')
 const { generate } = require('../lib/utils.js')
 
