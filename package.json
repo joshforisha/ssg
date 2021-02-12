@@ -1,6 +1,6 @@
 {
   "name": "@joshforisha/ssg",
-  "version": "3.1.0-pre",
+  "version": "3.1.0",
   "description": "A supremely simple static site generator",
   "repository": "github:joshforisha/ssg",
   "bin": {
