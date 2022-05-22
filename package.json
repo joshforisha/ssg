@@ -10,8 +10,10 @@
   "license": "BSD-3-Clause",
   "dependencies": {
     "chokidar": "3.5.3",
+    "clean-css": "^5.2.4",
     "handlebars": "4.7.7",
     "html-minifier-terser": "7.0.0-alpha.2",
-    "marked": "4.0.16"
+    "marked": "4.0.16",
+    "terser": "^5.12.0"
   }
 }
